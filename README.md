@@ -12,12 +12,11 @@ Welcome to the `Readme.md` file for Matie!
 
 Imagine a fairly typical software application consisting of a database and a customer facing UI.  You have spent months designing the perfect database schema, implementing innovative backend functionality, crafting a beautiful UI on top and ensuring a slick user experience!  However, the last piece of the puzzle is the boring admin section which provides a birds eye view of all of the customer data stored in the various database tables ...  
 
-In general, an admin client should provide the ability to browse the main database tables, provide various useful filters and support sorting of data. Server side pagination of bigger tables should also be supported.  Also, the ability to create, edit and delete rows in the various tables using forms.  Finally, users should be authenticated properly to the admin section and possibly get different views of the data depending on their role / level. 
+In general, an admin client should provide the ability to browse the main database tables, provide various useful filters and support sorting of data. Server side pagination of bigger tables should also be supported.  Also, the ability to create, edit and delete rows in the various tables using user friendly forms which support validation.  Sometimes it makes sense to show sub views of data, especially if a table has lots of foreign key relationships.  Finally, users should be authenticated properly to the admin section and possibly get different views of the data depending on their role / level. 
 
 Sound familiar?  Creating these admin screens can be tedious and may still take considerable time to implement and test, especially if the database schema is large.  
 
 This common scenario is something which MATIE endeavors to solve.
-
 
 
 ## 2. THE SOLUTION!
@@ -101,7 +100,7 @@ This can be done in 3 ways.
 You may only want to work with your own database with Matie.  However, if you don't have one or you want to understand the following examples you can install the following simple example schema (link to another page).
 
 
-### 3.4 Create [ _matie ] database table
+### 3.4 Create [ _m ] database table
 
 The following piece of SQL creates the `_m` database table which is required for the MATIE to run.
   
@@ -115,7 +114,7 @@ All Matie configuration is inserted in the `_m` database table which can be bund
     insert into _m (type,    name,         value)        
             values ('table', 'cust_order', 'Customer Orders'),
 
-These 3 columns are follows: - 
+The 3 columns names are as follows: - 
 
 1. `type` - the type of configuration e.g. `table`  _(Definition of a database table in this example)_
 2. `name` - the name of the configuration e.g. `cust_order` _(Name of database table in this example)_
@@ -130,7 +129,7 @@ The default web interface can now be loaded using: -
 
 * http://localhost:8080
 
-At this stage you should say _"Authentication not configured"_. There are various ways to performa authenticate but the easiest is to insert the following into our `_m` database table: -
+At this stage you should say _"Authentication not configured"_. There are various ways to perform authenticate but the easiest is to insert the following into our `_m` database table: -
 
     insert into _m (type,     name,       value) 
             values ('global', 'security', 'admin|admin123');
@@ -193,9 +192,9 @@ If there is more than 1 line in the `value` then we expect it to be in YAML form
     
 This example is also simple and illustrates we're only storing 2 columns (seperated by the pipe `|` character).
 
-#### 4.1.3 Table Definition Example - Complex example
+#### 4.1.3 Table Definition Example - A Complex example
 
-In the following example we have an advanced version of the list SQL, and custom behavour defined for each of the columns.  
+In the following example we have an advanced version (including bespoke SQL), and custom behavour defined for each of the columns.  
 
     insert into _m (type,    name,   value)                     
             values ('table', 'room', '
@@ -280,12 +279,13 @@ In the following example we have an advanced version of the list SQL, and custom
         flags: L
         # Do we utilise a template language like free marker or here?  Could be super powerful.
         # Even more powerful would be a scripting langauge such as JavaScript
-        sql: update users set password = ${input} where id in {{<#list ids as id>${id}</#id>}}
+        sql: update users set password = ${input} where id in <#list ids as id>${id}</#id>
  
     params: 
       # this could be used for the link between a parent / child view
+      # Not sure what to do here 
 
-    flags: 
+    flags: LSRN
 
     props: 
       can-edit : true
@@ -294,11 +294,7 @@ In the following example we have an advanced version of the list SQL, and custom
 
     ');
 
-**NOTE**: it's necessary to escape single quotes with 2 single quotes e.g. 
-
-    ...
-    delete-sql : delete from room where id = ''{id}''
-    ...
+> **NOTE**: it's necessary to escape single quotes with 2 single quotes i.e. `name like ''%{value}%''`
     
 This creates a screen where the data can be filtered in 2 ways (a freeform text box and a database driven combo box). Pagination options are also included and columns are included or hidden from views based on flags.  Let's explain each section-by-section: -
 
@@ -360,7 +356,7 @@ Most of the bulk of the configuration is in the `columns` section so a shorthand
 
 ####  - Global definitions
 
-This is useful if you want to override global definitions across the codebase.  These are sections of YAML which apply to the entire application but can be overriden in each section if desired.  For example: -
+This is useful if you want to override global definitions across your admin client.  These are sections of YAML which apply to the entire application but can be overriden in each section if desired.  For example: -
 
     insert into _matie (type, name, value) values                    
                        ('global',  'table', '
