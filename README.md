@@ -157,15 +157,16 @@ And you would be right - running MATIE with no configuration is exactly that - a
 However, it comes into it's own once you start playing with it's configuration.  This is achieved via `insert` containing YAML which can dynamically change the behaviour of the UI.  As mentioned about there is 3 columns (`type`, `name` and `value` - the list of available `type` values are as follows: -
 
 1. `table` - this is the main type and describes a single database table.
-2. `view` - this isn't tied to a database table and but can display a view / query (but supports custom update queries).
-3. `global` - this is used to set security, default values in `table` and `view` sections.
+2. `tables` - a way to define multiple tables quickly. 
+3. `view` - this isn't tied to a database table and but can display a view / query (but supports custom update queries).
+4. `global` - this is used to set security, default values in `table` and `view` sections.
 
 
-### 4.1 Matie Table Definitions
+### 4.1 Matie `table` Definitions
 
 Table definitions are used to add / remove database table definitions and also how the columns of each table and displayed / managed.
 
-#### 4.1.1 Table Definitions Example - 2 Simple Views
+#### 4.1.1 Table Definitions Example - 2 Simple tables.
 
     insert into _m (type,    name,        value) 
             values ('table', 'room',      'Rooms'),
@@ -194,7 +195,7 @@ This example is also simple and illustrates we're only storing 2 columns (sepera
 
 #### 4.1.3 Table Definition Example - A Complex example
 
-In the following example we have an advanced version (including bespoke SQL), and custom behavour defined for each of the columns.  
+Lets create a more complex screen. Pagination options are included and columns are included or hidden from views based on flags.    
 
     insert into _m (type,    name,   value)                     
             values ('table', 'room', '
@@ -202,15 +203,9 @@ In the following example we have an advanced version (including bespoke SQL), an
     id : room-by-user
     label : Room
 
-    text: -
-      head: Welcome to the room edit section of the client
-      body: |
-        There are various different ways that you can edit / create a new room. 
-        For example, you can add a new room and delete another one.
-      foot:
-        Tip - deleting rooms may affect other sections of the site.
+    columns: + TBL_* | - _PRIVATE* | + /[a-zA-Z0-9\d]*/
 
-    columns:
+    column:
       id:
         label : ID
         flags : LSRN
@@ -233,7 +228,7 @@ In the following example we have an advanced version (including bespoke SQL), an
       maxsleeps: Max Sleeps | SLFEN | select | ,- | select id,description from type      
       type_desc: Description | SLFEN | text area
 
-    filters: 
+    filter: 
       search:
         label : Search
         input : text
@@ -267,8 +262,16 @@ In the following example we have an advanced version (including bespoke SQL), an
         delete from room_info; 
         delete from room where id = ${id};
 
-      update:
+      update: |
         update room set 
+
+    text: 
+      head: Welcome to the room edit section of the client
+      body: |
+        There are various different ways that you can edit / create a new room. 
+        For example, you can add a new room and delete another one.
+      foot:
+        Tip - deleting rooms may affect other sections of the site.
 
     actions: 
       reset-password: 
@@ -294,43 +297,141 @@ In the following example we have an advanced version (including bespoke SQL), an
 
     ');
 
-> **NOTE**: it's necessary to escape single quotes with 2 single quotes i.e. `name like ''%{value}%''`
-    
-This creates a screen where the data can be filtered in 2 ways (a freeform text box and a database driven combo box). Pagination options are also included and columns are included or hidden from views based on flags.  Let's explain each section-by-section: -
+> **NOTE**: It is essential to escape the SQL `insert` statements i.e. a single quotes are generally escaped 2 single quotes i.e. `name like ''%{value}%''`
 
+Let discuss each section of this complex example in more detail: -
 
-#### 4.2.1 - Table Definition [ label ] 
+#### 4.2.4 Table Definition [ `id` ]
 
+    id : room-by-user
+
+The `id` of a table definition defaults to the name of the database table.  This optional field is thus only required if we required 2 (or more) editable screens created from the same database table.  The following will result in an error: -
+
+    insert into _m (type,    name,   value) 
+            values ('table', 'room', 'Rooms 1'),
+                   ('table', 'room', 'Rooms 2);
+
+However, the following will work because we specify an `id` for the second `room` entry: -
+
+    insert into _m (type,    name,   value) 
+            values ('table', 'room', 'Rooms 1'),
+                   ('table', 'room', '
+     
+    id : room-2       
+
+    ');
+
+These `id` can be specified then in other parts of the definitions. 
+
+#### 4.2.5 - Table Definition [ label ] 
+
+    insert into _m (type,    name,             value) 
+            values ('table', 'db_employ_data', '
+ 
     label    : Employee
+
+    ');
 
 The `label` is a human friendly version of the database table name (e.g. `Employee` is much nicer looking that `DB_EMPLOY_DATA`). 
 
-> **NOTE** - This is the only mandatory field, all the others are optional! 
+If the label is the only thing specified in the `table` definition then we don't need to use a YAML configuration, this will also work: -
 
 
-#### 4.2.2 - Table Definition [ sql ] 
+    insert into _m (type,    name,             value) 
+            values ('table', 'db_employ_data', 'Employee');
 
-    sql : |
+> **NOTE (1)** - This is the only mandatory field, all the others are optional! 
 
-      select 
-        r.id            id,
-        r.name          name,
-        r.min_sleeps    min_sleeps,
-        r.type_id       type_id,
-        t.description   type_desc
-      from 
-        room r, type t
-      where 
-        t.id = r.typeid
+> **NOTE (2)** - Also, if the `label` is the same as `table` then consider using the `tables` configuration type (see section 4.3). 
 
-The `list-sql` is useful when a table of data contains lots of foreign keys e.g. `TYPE_ID` to other tables but we would prefer to display a more meaningful descriptive version of the key.  In this example we have our main table `room` 
+#### 4.2.6 - Table Definition [ columns ]
+
+The `columns` attribute is a way to quickly include / exclude a number of columns in 2 ways: -
+
+1. **Simple list** - each column is seperated with pipe character e.g. 
+ 
+        id | name | created | description` 
+    
+    This example will simply include these 4 columns.
+
+2. **Matches** - columns can be matched via multiple stages of (a) simple wildcard matching (_uses asterisk `*` and question mark `?` characters_) and / or (b) advanced regular expression matching.  
+
+Each match must start with a plus `+` character (_include_) or a minus `-` character (_exclude_).  Each match is seperated with the pipe `|` character and the order is important (i.e. switching an include and an exclude around could create a different list of columns).
+
+This is best illustrated with an example: -
+
+    columns: + TBL_* | - *_PRIVATE??? | + /[a-zA-Z0-9\d]*/
+
+This example has 3 stages: -
+
+1. `+ TBL_*` - _include_ all columns which start with `TBL_` e.g. would include `TBL_EMPLOYEE` table. 
+2. `- *_PRIVATE???` - takes all the tables included from previous include and _excludes_ all the columns which end with `_PRIVATE` plus any 3 character e.g. would exclude the `EMP_PRIVATE029` table.
+3. `+ /[a-zA-Z0-9_]*/` - Takes all the tables matched from previous stage and includes columns using a regular expression (denoted by the start and end forward slashes `/ <regular_expression> /`.  This example uses a regex character class which matches tables containing all the lower and upper case letters of the alphabet, numbers 0 to 9 and the underscore `_` character e.g. would match `MANGER_9` but not `$STAFF`..
+
+#### 4.2.7 - Table Definition [ column ] 
+
+    column:
+      id:
+        label : ID
+        flags : LSRN
+        input : text
+        valid : empty
+        p-key : true
+        sort  : desc
+      typeid:
+        label : Type ID
+        flags : ENF
+        input : select | -1, - | 0..30..1
+      min_sleeps:
+        label: 
+          SLF : Min. Sleeps
+          EN  : Minimum Sleeps
+        text  : Show | 
+        flags : ESLE
+        input : select | ,- | select id,description from type
+        valid : empty | Please select a valid minimum sleeps
+      maxsleeps: Max Sleeps | SLFEN | select | ,- | select id,description from type      
+      type_desc: Description | SLFEN | text area
+
+#### 4.2.<!!! FILL IN !!!> Table Definition [ `text` ]
+
+The `text` section is used to create user friendly descriptions to your admin screens.  The main ones are `head` (top of screen), `body` (main description) and `foot` (bottom of screen).
+
+    text: 
+      head: Welcome to the room edit section of the client
+      body: |
+        There are various different ways that  
+        you can edit / create a new room. 
+        For example, you can add a new room and 
+        delete another one.
+      foot:
+        Tip - deleting rooms may affect other sections of the site.
+
+> **NOTE** - Multi-lines can be achieved by starting with a  pipe `|` character (e.g. see `body` section in example).
+
+#### 4.2.<!!! FILL IN !!!> - Table Definition [ sql ] 
+
+    sql:
+
+      list: |
+        select 
+          r.id            id,
+          r.typeid        typeid,
+          r.min_sleeps    min_sleeps,
+          r.max_sleeps    max_sleeps,
+          t.description   type_desc
+        from 
+          room r
+        inner join room_type on rt.id = t.id
+        where user_id = ${user.id}
+
+The `sql (list)` is used to override theis useful when a table of data contains lots of foreign keys e.g. `TYPE_ID` to other tables but we would prefer to display a more meaningful descriptive version of the key.  In this example we have our main table `room` where we link to the `room_type` table and display it's `t.description` description as `type_desc`. 
 
 > **Note** - The column names still need to match up with the column names we wish to edit on even 
 
-
 It's worth detailing each section of this 
 
-
+### Flags
     
 NOTE the flags are as follows: -
 
@@ -352,9 +453,29 @@ Most of the bulk of the configuration is in the `columns` section so a shorthand
 
 If no flags are displayed then the default is every view (list, edit, new and view).
 
-Most of the bulk of the configuration is in the `columns` section so a shorthand format exists to speed up declaration i.e.
+Most of the bulk of the configuration is in the `column` section so a shorthand format exists to speed up declaration i.e.
 
-####  - Global definitions
+text|,-|select id, username from user order by username
+textarea|,-|select id, username from user order by username
+combobox|,-|select id, username from user order by username
+combobox-multi|,-|select id, username from user order by username
+chekcbox|,-|select id, username from user order by username
+radio|,-|select id, username from user order by username
+
+
+### 4.2 Matie `global` definitions
+
+This is useful if you want to over
+
+### 4.3 Matie `global` definitions
+
+This is useful if you want to over
+
+### 4.4 Matie `` definitions
+
+Basdfasdf
+
+### 4.5 Matie `global` definitions
 
 This is useful if you want to override global definitions across your admin client.  These are sections of YAML which apply to the entire application but can be overriden in each section if desired.  For example: -
 
