@@ -370,15 +370,15 @@ The `columns` attribute is a way to quickly include / exclude a number of column
 
     This example has 3 stages: -
 
-    a. `+TBL_*`
+    1. `+TBL_*`
 
         _include_ all columns which start with `TBL_` e.g. would include `TBL_EMPLOYEE` table. 
     
-    b. `-*_PRIVATE???` 
+    2. `-*_PRIVATE???` 
 
-        takes all the tables included from previous include and _excludes_ all the columns which end with `_PRIVATE` plus any 3 character e.g. would exclude the `EMP_PRIVATE029` table.
+        Take all the tables included from previous include and _excludes_ all the columns which end with `_PRIVATE` plus any 3 character e.g. would exclude the `EMP_PRIVATE029` table.
 
-    c. `+/[a-zA-Z0-9_]*/`
+    3. `+/[a-zA-Z0-9_]*/`
 
         Takes all the tables matched from previous stage and includes columns using a regular expression (denoted by the start and end forward slashes `/ <regular_expression> /`.  This example uses a regex character class which matches tables containing all the lower and upper case letters of the alphabet, numbers 0 to 9 and the underscore `_` character e.g. would match `MANAGER_9` but not `$STAFF`.
 
