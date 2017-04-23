@@ -10,7 +10,7 @@ Welcome to the `Readme.md` file for Matie!
 
 > _"Having to create another boring admin section to my app ..."_
 
-Imagine a fairly typical software application consisting of a database and a customer facing UI.  You have spent months designing the perfect database schema, implementing innovative backend functionality, crafting a beautiful UI on top and ensuring a slick user experience!  However, the last piece of the puzzle is the boring admin section which provides a birds eye view of all of the customer data stored in the various database tables ...  
+Imagine a fairly typical software application consisting of a database and a customer facing UI.  You have spent months designing the perfect database schema, implementing innovative backend functionality, crafting a beautiful UI on top and ensuring a slick user experience!  However, the last piece of the puzzle is the boring (but important) admin section which provides a birds eye view of all of the application data stored in the various database tables ...  
 
 In general, an admin client should provide the ability to browse the main database tables, provide various useful filters and support sorting of data. Server side pagination of bigger tables should also be supported.  Also, the ability to create, edit and delete rows in the various tables using user friendly forms which support validation.  Sometimes it makes sense to show sub views of data, especially if a table has lots of foreign key relationships.  Finally, users should be authenticated properly to the admin section and possibly get different views of the data depending on their role / level. 
 
@@ -346,29 +346,51 @@ If the label is the only thing specified in the `table` definition then we don't
 
 #### 4.2.6 - Table Definition [ columns ]
 
-The `columns` attribute is a way to quickly include / exclude a number of columns in 2 ways: -
+The `columns` attribute is a way to quickly include / exclude a number of columns in 3 different ways: -
 
-1. **Simple list** - each column is seperated with pipe character e.g. 
+1. **Include All** - include all columns using asterix `*` character.
+
+    `columns: *`
+
+    This is useful if we want to include all columns of a table but override the default functionality of only a few columns using the `column` attribute. If we don't declare this then _only_ the columns defined in each `column` will be displayed in the various admin screens.
+
+2. **Simple list** - each column is seperated with pipe character e.g. 
  
-        id | name | created | description` 
+        `columns: id | name | created | description` 
     
-    This example will simply include these 4 columns.
+    This example includes the 4 columns specified.
 
-2. **Matches** - columns can be matched via multiple stages of (a) simple wildcard matching (_uses asterisk `*` and question mark `?` characters_) and / or (b) advanced regular expression matching.  
+3. **Matches** - columns can be matched via multiple stages of (a) simple wildcard matching (_uses asterisk `*` and question mark `?` characters_) and / or (b) advanced regular expression matching.  
 
-Each match must start with a plus `+` character (_include_) or a minus `-` character (_exclude_).  Each match is seperated with the pipe `|` character and the order is important (i.e. switching an include and an exclude around could create a different list of columns).
+    Each match must start with a plus `+` character (_include_) or a minus `-` character (_exclude_).  Each match is seperated with the pipe `|` character and the order is important (i.e. switching an include and an exclude around could create a different list of columns).
 
-This is best illustrated with an example: -
+    This is best illustrated with an example: -
 
-    columns: + TBL_* | - *_PRIVATE??? | + /[a-zA-Z0-9\d]*/
+    `columns: +TBL_* | -*_PRIVATE??? | +/[a-zA-Z0-9]*/`
 
-This example has 3 stages: -
+    This example has 3 stages: -
 
-1. `+ TBL_*` - _include_ all columns which start with `TBL_` e.g. would include `TBL_EMPLOYEE` table. 
-2. `- *_PRIVATE???` - takes all the tables included from previous include and _excludes_ all the columns which end with `_PRIVATE` plus any 3 character e.g. would exclude the `EMP_PRIVATE029` table.
-3. `+ /[a-zA-Z0-9_]*/` - Takes all the tables matched from previous stage and includes columns using a regular expression (denoted by the start and end forward slashes `/ <regular_expression> /`.  This example uses a regex character class which matches tables containing all the lower and upper case letters of the alphabet, numbers 0 to 9 and the underscore `_` character e.g. would match `MANGER_9` but not `$STAFF`..
+    a. `+TBL_*`
+
+        _include_ all columns which start with `TBL_` e.g. would include `TBL_EMPLOYEE` table. 
+    
+    b. `-*_PRIVATE???` 
+
+        takes all the tables included from previous include and _excludes_ all the columns which end with `_PRIVATE` plus any 3 character e.g. would exclude the `EMP_PRIVATE029` table.
+
+    c. `+/[a-zA-Z0-9_]*/`
+
+        Takes all the tables matched from previous stage and includes columns using a regular expression (denoted by the start and end forward slashes `/ <regular_expression> /`.  This example uses a regex character class which matches tables containing all the lower and upper case letters of the alphabet, numbers 0 to 9 and the underscore `_` character e.g. would match `MANAGER_9` but not `$STAFF`.
+
+    If you wanted _all_ columns except for e.g. 2 fields called `password` and `secret` then you would do the following: -
+
+    `columns: -password | -secret`
+
+    Due to the first match being an exclude then we assume that all columns are included initially (no initial asterix `*` required).
 
 #### 4.2.7 - Table Definition [ column ] 
+
+The column section is complex and enables the user to override default functionality for each column of a database table. 
 
     column:
       id:
@@ -386,12 +408,76 @@ This example has 3 stages: -
         label: 
           SLF : Min. Sleeps
           EN  : Minimum Sleeps
-        text  : Show | 
+        text  : The minimum number of people who can sleep 
         flags : ESLE
         input : select | ,- | select id,description from type
         valid : empty | Please select a valid minimum sleeps
       maxsleeps: Max Sleeps | SLFEN | select | ,- | select id,description from type      
-      type_desc: Description | SLFEN | text area
+      type_desc: Description | SLFEN | text area  
+
+If we don't use the `columns` field (to match multiple columns) then only the fields defined in the `column` section are used.  If we use both `columns` to include e.g. 10 fields and `column` to override the behavour of e.g. 4 of these then the remaining 6 will use the default behavour (e.g. using textfields for input, column names for labels etc). 
+
+If we have an `id` column as follows: -
+
+    column:
+      id:
+        label : ID
+        flags : LSRN
+        ...
+
+The fields that we can override are as follows: -
+
+##### 4.2.7.1 - Table column definition [ label ] 
+
+This is a user friendly label displayed in the various admin views e.g.
+
+    label: Minimum Sleeps
+
+This field is optional and defaults to the column name if not defined.  Also, we can have multiple labels defined in different views using flags i.e.
+
+    label: 
+      L : Min. Sleeps
+      EN : Minimum Sleeps
+
+In this example we have the shorter `Min. Sleeps` label defined in the _list_ (`L`) view and the longer `Minimum Sleeps` label is defined in the _edit_ (`E`) and _new_ (`N`) view.
+
+> **NOTE** - _"SNAKE_CASE"_ column names are converted to _"Title Case"_ labels by default e.g. column `ROOM_TYPE_ID` would have a default label of `Room Type Id`.
+
+##### 4.2.7.2 - Table column definition [ flags ] 
+
+
+
+NOTE the `column` flags are as follows: -
+
+    L = Show is list view
+    E = Show in edit view
+    R = Show as read-only (edit view only - can't have ER in same column)
+    N = Show in new view
+    V = Show in display item view (optional readonly view)
+    I = Inline editing (list view only - can't have LI in same column)
+
+If no flags are displayed then the default is `LEN` (`list`, `edit` and `new` views).
+
+> **NOTE** - The default column flags can be overriden in both the `table` and `global` types.
+
+Most of the bulk of the configuration is in the `columns` section so a shorthand format exists to speed up declaration i.e.
+
+    <database_column> : <Label> | <flags> | <input definition> | <validation> 
+
+    maxsleeps : Max Sleeps | SLFEN | textarea | empty
+
+If no flags are displayed then the default is every view (list, edit, new and view).
+
+Most of the bulk of the configuration is in the `column` section so a shorthand format exists to speed up declaration i.e.
+
+text|,-|select id, username from user order by username
+textarea|,-|select id, username from user order by username
+combobox|,-|select id, username from user order by username
+combobox-multi|,-|select id, username from user order by username
+chekcbox|,-|select id, username from user order by username
+radio|,-|select id, username from user order by username
+
+
 
 #### 4.2.<!!! FILL IN !!!> Table Definition [ `text` ]
 
@@ -429,38 +515,7 @@ The `sql (list)` is used to override theis useful when a table of data contains 
 
 > **Note** - The column names still need to match up with the column names we wish to edit on even 
 
-It's worth detailing each section of this 
 
-### Flags
-    
-NOTE the flags are as follows: -
-
-    L = Show is list view
-    S = Sortable (list view only)
-    E = Show in edit view
-    R = Show as read-only (edit view only)
-    N = Show in new view
-    V = Show in view item 
-    I = Inline editing
-    
-If no flags are displayed then the default is everything (`list`, `edit`, `new` and `view`).
-
-Most of the bulk of the configuration is in the `columns` section so a shorthand format exists to speed up declaration i.e.
-
-    <database_column> : <Label> | <flags> | <input definition> | <validation> 
-
-    maxsleeps : Max Sleeps | SLFEN | textarea | empty
-
-If no flags are displayed then the default is every view (list, edit, new and view).
-
-Most of the bulk of the configuration is in the `column` section so a shorthand format exists to speed up declaration i.e.
-
-text|,-|select id, username from user order by username
-textarea|,-|select id, username from user order by username
-combobox|,-|select id, username from user order by username
-combobox-multi|,-|select id, username from user order by username
-chekcbox|,-|select id, username from user order by username
-radio|,-|select id, username from user order by username
 
 
 ### 4.2 Matie `global` definitions
