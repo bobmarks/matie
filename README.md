@@ -366,7 +366,7 @@ The `columns` attribute is a way to quickly include / exclude a number of column
 
     This is best illustrated with an example: -
 
-    `columns: +TBL_* | -*_PRIVATE??? | +/[a-zA-Z0-9]*/`
+    `columns: +TBL_* | -*_PRIVATE??? | +/[a-zA-Z0-9_]*/`
 
     This example has 3 stages: -
 
@@ -393,17 +393,19 @@ The `columns` attribute is a way to quickly include / exclude a number of column
 The column section is complex and enables the user to override default functionality for each column of a database table. 
 
     column:
+
       id:
         label : ID
         flags : LSRN
         input : text
         valid : empty
         p-key : true
-        sort  : desc
+        
       typeid:
         label : Type ID
         flags : ENF
         input : select | -1, - | 0..30..1
+
       min_sleeps:
         label: 
           SLF : Min. Sleeps
@@ -412,7 +414,9 @@ The column section is complex and enables the user to override default functiona
         flags : ESLE
         input : select | ,- | select id,description from type
         valid : empty | Please select a valid minimum sleeps
-      maxsleeps: Max Sleeps | SLFEN | select | ,- | select id,description from type      
+
+      maxsleeps: Max Sleeps | SLFEN | select | ,- | select id,description from type 
+     
       type_desc: Description | SLFEN | text area  
 
 If we don't use the `columns` field (to match multiple columns) then only the fields defined in the `column` section are used.  If we use both `columns` to include e.g. 10 fields and `column` to override the behavour of e.g. 4 of these then the remaining 6 will use the default behavour (e.g. using textfields for input, column names for labels etc). 
@@ -441,24 +445,34 @@ This field is optional and defaults to the column name if not defined.  Also, we
 
 In this example we have the shorter `Min. Sleeps` label defined in the _list_ (`L`) view and the longer `Minimum Sleeps` label is defined in the _edit_ (`E`) and _new_ (`N`) view.
 
-> **NOTE** - _"SNAKE_CASE"_ column names are converted to _"Title Case"_ labels by default e.g. column `ROOM_TYPE_ID` would have a default label of `Room Type Id`.
+> **NOTE** - `SNAKE_CASE` column names are converted to `Title Case` labels by default e.g. column `ROOM_TYPE_ID` would have a default label of `Room Type Id`.
 
 ##### 4.2.7.2 - Table column definition [ flags ] 
 
+The `flags` is a useful way to specify which columns appear in which admin page views.  The main admin screens are: -
 
+1. *List Page* - display a table of data.
+2. *Edit Page* - form used to edit an existing item.
+3. *New Page* - form used to create a new item.
+4. *View Page* - read only version of a page.
 
-NOTE the `column` flags are as follows: -
+For example, we may wish to show 4 columns in the list page, 8 in the new page and 6 in the edit page - this is achievable by specifying the correct flags in each column.
 
-    L = Show is list view
-    E = Show in edit view
-    R = Show as read-only (edit view only - can't have ER in same column)
-    N = Show in new view
-    V = Show in display item view (optional readonly view)
-    I = Inline editing (list view only - can't have LI in same column)
+All the `column` flags are as follows: -
+
+* `L` = Show is list view
+* `S` = Column is sortable _(list view only - if specified then `L` is implied and therefore not required)_
+* `E` = Show in edit view
+* `R` = Show as read-only _(edit view only - if specified then `E` is implied and therefore not required)_
+* `N` = Show in New view
+* `V` = Show in display item view (optional readonly view)
+* `I` = Inline editing _(list view only - if specified then `L` is implied and therefore not required)_
 
 If no flags are displayed then the default is `LEN` (`list`, `edit` and `new` views).
 
-> **NOTE** - The default column flags can be overriden in both the `table` and `global` types.
+> **NOTE** - The default column flags can be overriden in both the `table` and `global` (entire admin application).
+
+##### 4.2.7.2 - Table column definition [ flags ] 
 
 Most of the bulk of the configuration is in the `columns` section so a shorthand format exists to speed up declaration i.e.
 
